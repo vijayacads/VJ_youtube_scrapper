@@ -3,6 +3,8 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
 import random
 import os
+import requests
+from unittest.mock import patch
 
 # Webshare proxy configuration
 # Can be overridden via environment variables
@@ -52,6 +54,10 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
     max_proxy_attempts = 3
     proxies_used = []
     
+    # Store original requests methods for restoration
+    original_get = requests.get
+    original_session_request = requests.Session.request
+    
     for attempt in range(max_proxy_attempts):
         try:
             # Get a random proxy for this attempt (avoid reusing failed ones)
@@ -63,12 +69,45 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             proxy_ip_port = random.choice(available_proxies)
             proxies_used.append(proxy_ip_port)
             
-            # Set proxy environment variables (youtube-transcript-api uses requests internally)
+            # Create proxy URL with authentication
             proxy_url = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@{proxy_ip_port}"
+            
+            # Test proxy connectivity first
+            try:
+                test_response = requests.get(
+                    "https://httpbin.org/ip",
+                    proxies={"http": proxy_url, "https": proxy_url},
+                    timeout=5
+                )
+                proxy_ip = test_response.json().get('origin', 'unknown')
+                print(f"✓ Proxy {proxy_ip_port} is working, IP: {proxy_ip}")
+            except Exception as proxy_test_error:
+                print(f"⚠️ Proxy {proxy_ip_port} test failed: {str(proxy_test_error)[:100]}")
+                # Continue anyway - might still work for YouTube
+            
+            # Set proxy environment variables
             os.environ['HTTP_PROXY'] = proxy_url
             os.environ['HTTPS_PROXY'] = proxy_url
+            os.environ['http_proxy'] = proxy_url
+            os.environ['https_proxy'] = proxy_url
             
-            # Create API instance - it will use the proxy from environment
+            # Monkey-patch requests.get to ensure proxy is used
+            # The youtube-transcript-api library uses requests internally
+            def proxied_get(url, **kwargs):
+                if 'proxies' not in kwargs:
+                    kwargs['proxies'] = {"http": proxy_url, "https": proxy_url}
+                return original_get(url, **kwargs)
+            
+            def proxied_session_request(self, method, url, **kwargs):
+                if 'proxies' not in kwargs:
+                    kwargs['proxies'] = {"http": proxy_url, "https": proxy_url}
+                return original_session_request(self, method, url, **kwargs)
+            
+            # Patch requests
+            requests.get = proxied_get
+            requests.Session.request = proxied_session_request
+            
+            # Create API instance - it will use the proxy
             api = YouTubeTranscriptApi()
             transcript_list = api.list(video_id)
             
@@ -123,16 +162,32 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             # Strip leading/trailing whitespace
             transcript_text = transcript_text.strip()
             
+            # Restore original requests methods
+            requests.get = original_get
+            requests.Session.request = original_session_request
+            
             # Clear proxy env vars after successful fetch
             os.environ.pop('HTTP_PROXY', None)
             os.environ.pop('HTTPS_PROXY', None)
+            os.environ.pop('http_proxy', None)
+            os.environ.pop('https_proxy', None)
             
+            print(f"✓ Successfully fetched transcript for {video_id} using proxy {proxy_ip_port}")
             return transcript_text
         
         except Exception as e:
+            # Restore original requests methods on error
+            try:
+                requests.get = original_get
+                requests.Session.request = original_session_request
+            except:
+                pass
+            
             # Clear proxy env vars on error
             os.environ.pop('HTTP_PROXY', None)
             os.environ.pop('HTTPS_PROXY', None)
+            os.environ.pop('http_proxy', None)
+            os.environ.pop('https_proxy', None)
             
             error_type = type(e).__name__
             error_message = str(e)
@@ -146,9 +201,12 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             if error_type in ['IpBlocked', 'RequestBlocked']:
                 print(f"⚠️ BLOCKED: YouTube is blocking transcript requests for {video_id}")
                 print(f"   Error Type: {error_type}")
+                print(f"   Proxy used: {proxy_ip_port}")
                 print(f"   Message: {error_message[:200]}...")
                 if attempt == max_proxy_attempts - 1:
                     print(f"   All {max_proxy_attempts} proxy attempts failed")
+                    print(f"   NOTE: These proxies may be datacenter IPs which YouTube blocks.")
+                    print(f"   Consider using residential proxies or a third-party transcript API.")
                 return "__BLOCKED__"
             # Only log other errors if they're not common "no transcript" errors
             elif error_type not in ['NoTranscriptFound', 'TranscriptsDisabled', 'VideoUnavailable']:
@@ -159,6 +217,13 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             # If all proxy attempts failed, return None
             if attempt == max_proxy_attempts - 1:
                 return None
+    
+    # Restore original requests methods if we exit the loop
+    try:
+        requests.get = original_get
+        requests.Session.request = original_session_request
+    except:
+        pass
     
     # If we exhausted all attempts, return None
     return None
