@@ -355,22 +355,26 @@
                 <div class="header-text">
                     <h1>YouTube Scraper</h1>
                     <p>Get video details, transcripts, and channel exports with live progress</p>
-                    <div style="margin-top: 15px;">
-                        <div style="background: rgba(255, 193, 7, 0.15); border-left: 4px solid #ffc107; padding: 12px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; line-height: 1.6;">
-                            <strong>💡 Why Download the Standalone Package?</strong><br>
-                            <span style="color: #333;">Transcripts work better on localhost! Cloud servers (like Render) often get blocked by YouTube. Download the package to run on your computer for reliable transcript fetching.</span>
-                        </div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                            <a href="/download-package" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 10px 20px; text-decoration: none; font-size: 14px; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; transition: all 0.3s;">
-                                📦 Download Standalone Package
-                            </a>
-                            <button onclick="stopServer()" class="btn btn-secondary" id="stopServerBtn" style="display: inline-block; width: auto; padding: 10px 20px; font-size: 14px; background: rgba(220, 53, 69, 0.8); border: 1px solid rgba(220, 53, 69, 0.9); border-radius: 6px; transition: all 0.3s; color: white; cursor: pointer; border: none;">
-                                🛑 Stop Server
-                            </button>
-                        </div>
-                        <div style="background: rgba(23, 162, 184, 0.1); border-left: 4px solid #17a2b8; padding: 10px 15px; border-radius: 6px; margin-top: 12px; font-size: 12px; line-height: 1.5;">
-                            <strong>📋 Quick Setup:</strong> 1) Download package → 2) Extract zip → 3) Run <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">install.bat</code> (Windows) or <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">./install.sh</code> (Mac/Linux) → 4) Enter your YouTube API key → 5) Run <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">run.bat</code> or <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">./run.sh</code>
-                        </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <a href="/download-package" class="btn btn-secondary" style="display: inline-block; width: auto; padding: 10px 20px; text-decoration: none; font-size: 14px; background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 6px; transition: all 0.3s;">
+                            📦 Download Standalone Package
+                        </a>
+                        <button onclick="stopServer()" class="btn btn-secondary" id="stopServerBtn" style="display: inline-block; width: auto; padding: 10px 20px; font-size: 14px; background: rgba(220, 53, 69, 0.8); border: 1px solid rgba(220, 53, 69, 0.9); border-radius: 6px; transition: all 0.3s; color: white; cursor: pointer; border: none;">
+                            🛑 Stop Server
+                        </button>
+                    </div>
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; border-left: 4px solid #69ab4a; font-size: 13px; line-height: 1.6;">
+                        <strong style="color: #69ab4a;">💡 Why Download the Standalone Package?</strong>
+                        <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9);">
+                            <strong>For Transcripts:</strong> YouTube blocks cloud server IPs (like Render), so transcripts may be unavailable here. 
+                            The standalone package runs on your local computer, which works perfectly for transcripts!
+                        </p>
+                        <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9);">
+                            <strong>Quick Setup:</strong> 1) Download package → 2) Extract zip → 3) Run <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">install.bat</code> (Windows) or <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">install.sh</code> (Mac/Linux) → 4) Enter your YouTube API key → 5) Run <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">run.bat</code> or <code style="background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 3px;">run.sh</code>
+                        </p>
+                        <p style="margin: 10px 0 0 0; color: rgba(255, 255, 255, 0.9);">
+                            <strong>Need an API Key?</strong> Get one free from <a href="https://console.cloud.google.com/" target="_blank" style="color: #69ab4a; text-decoration: underline;">Google Cloud Console</a> (enable YouTube Data API v3)
+                        </p>
                     </div>
                 </div>
             </div>
