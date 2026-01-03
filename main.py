@@ -4,6 +4,9 @@ import io
 import json
 import uuid
 import asyncio
+import shutil
+import zipfile
+from pathlib import Path
 from typing import List, Optional, Callable, Dict
 from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Request
 from fastapi.staticfiles import StaticFiles
@@ -698,5 +701,78 @@ async def download_job_result(job_id: str, format: str = Query("json", regex="^(
         media_type="application/json",
         headers={"Content-Disposition": f'attachment; filename="export-{job_id}.json"'}
     )
+
+
+@app.get("/download-package")
+async def download_package():
+    """
+    Download the standalone package as a zip file.
+    Creates a distributable package on-the-fly.
+    """
+    try:
+        # Create temporary package directory
+        package_name = "youtube-scraper-standalone"
+        temp_dir = Path("temp_package")
+        temp_dir.mkdir(exist_ok=True)
+        package_dir = temp_dir / package_name
+        
+        # Clean up if exists
+        if package_dir.exists():
+            shutil.rmtree(package_dir)
+        package_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Files to include
+        files_to_include = [
+            "main.py",
+            "models.py",
+            "youtube_id.py",
+            "youtube_metadata.py",
+            "youtube_transcript.py",
+            "youtube_channel.py",
+            "requirements.txt",
+            "install.bat",
+            "install.sh",
+            "run.bat",
+            "run.sh",
+            "README_PACKAGE.md",
+        ]
+        
+        # Copy files
+        for file in files_to_include:
+            if os.path.exists(file):
+                shutil.copy2(file, package_dir / file)
+        
+        # Copy static directory
+        if os.path.exists("static"):
+            shutil.copytree("static", package_dir / "static", dirs_exist_ok=True)
+        
+        # Create zip file in memory
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(package_dir):
+                # Skip __pycache__ and .pyc files
+                dirs[:] = [d for d in dirs if d != '__pycache__']
+                files = [f for f in files if not f.endswith('.pyc')]
+                
+                for file in files:
+                    file_path = Path(root) / file
+                    arcname = file_path.relative_to(package_dir)
+                    zipf.write(file_path, arcname)
+        
+        # Clean up temp directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        
+        # Return zip file
+        zip_buffer.seek(0)
+        return Response(
+            content=zip_buffer.getvalue(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": "attachment; filename=youtube-scraper-standalone.zip"
+            }
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating package: {str(e)}")
 
 
