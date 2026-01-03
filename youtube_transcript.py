@@ -90,11 +90,19 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             
             # Clean up the text: remove newlines, backslashes, and extra whitespace
             import re
-            # First, remove all backslashes (this handles escaped characters)
-            transcript_text = transcript_text.replace('\\', '')
-            # Then replace any remaining newlines with spaces
+            # First, handle newlines and carriage returns
+            transcript_text = transcript_text.replace('\r\n', ' ')
             transcript_text = transcript_text.replace('\n', ' ')
             transcript_text = transcript_text.replace('\r', ' ')
+            # Remove standalone backslashes (but preserve escaped characters)
+            # Replace escaped quotes and other common escapes first
+            transcript_text = transcript_text.replace('\\"', '"')
+            transcript_text = transcript_text.replace("\\'", "'")
+            transcript_text = transcript_text.replace('\\n', ' ')
+            transcript_text = transcript_text.replace('\\t', ' ')
+            transcript_text = transcript_text.replace('\\r', ' ')
+            # Now remove any remaining standalone backslashes
+            transcript_text = transcript_text.replace('\\', '')
             # Replace multiple spaces with single space
             transcript_text = re.sub(r'\s+', ' ', transcript_text)
             # Strip leading/trailing whitespace
