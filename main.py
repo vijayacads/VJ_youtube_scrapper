@@ -805,3 +805,15 @@ async def shutdown_server():
     }
 
 
+if __name__ == "__main__":
+    import uvicorn
+    print("=" * 60)
+    print("Starting YouTube Scraper Server...")
+    print("=" * 60)
+    print("Server will be available at: http://localhost:8000")
+    print("Press Ctrl+C to stop the server")
+    print("=" * 60)
+    print()
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+
