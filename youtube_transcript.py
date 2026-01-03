@@ -77,6 +77,8 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             print(f"   Error Type: {error_type}")
             print(f"   Message: {error_message[:200]}...")  # Truncate long messages
             print(f"   This usually happens when running on cloud providers (Render, AWS, etc.)")
+            # Return a special marker to indicate it was blocked (not just unavailable)
+            return "__BLOCKED__"
         # Only log other errors if they're not common "no transcript" errors
         elif error_type not in ['NoTranscriptFound', 'TranscriptsDisabled', 'VideoUnavailable']:
             print(f"❌ Transcript error for {video_id}: {error_type} - {error_message[:200]}")

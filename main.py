@@ -126,12 +126,19 @@ async def get_youtube_details(
         # Fetch transcript for this video
         try:
             transcript = fetch_transcript_text(video_id)
-            video.transcript = transcript
-            if transcript is None:
-                # Log when transcript is None (but no exception was raised)
+            # Check if it was blocked vs just unavailable
+            if transcript == "__BLOCKED__":
+                # Was blocked - already logged in fetch_transcript_text
+                video.transcript = None
+            elif transcript is None:
+                # No transcript available (not blocked, just no captions)
+                video.transcript = None
                 print(f"ℹ️ No transcript available for {video_id} (video may not have captions)")
+            else:
+                # Successfully fetched transcript
+                video.transcript = transcript
         except Exception as e:
-            # If transcript fetch fails, set to None and continue
+            # If transcript fetch fails with unexpected error, set to None and continue
             video.transcript = None
             error_type = type(e).__name__
             if error_type in ['IpBlocked', 'RequestBlocked']:
