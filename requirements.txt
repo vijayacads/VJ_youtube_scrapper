@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+httpx
+youtube-transcript-api
+python-dotenv
+pydantic
+python-multipart
+openpyxl
+
