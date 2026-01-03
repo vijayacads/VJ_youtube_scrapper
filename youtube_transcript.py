@@ -228,12 +228,21 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             formatter = TextFormatter()
             transcript_text = formatter.format_transcript(transcript_data)
             
-            # Clean up the text
+            # Clean up the text to pure paragraph format - no newlines, backslashes, or extra characters
             import re
+            # Remove all backslashes first (they're not needed in plain text)
             transcript_text = transcript_text.replace('\\', '')
+            # Replace all types of newlines and line breaks with spaces
+            transcript_text = transcript_text.replace('\r\n', ' ')
             transcript_text = transcript_text.replace('\n', ' ')
             transcript_text = transcript_text.replace('\r', ' ')
+            # Replace tabs and other whitespace characters with spaces
+            transcript_text = transcript_text.replace('\t', ' ')
+            # Remove any other control characters
+            transcript_text = re.sub(r'[\x00-\x1f\x7f-\x9f]', ' ', transcript_text)
+            # Replace multiple spaces with single space
             transcript_text = re.sub(r'\s+', ' ', transcript_text)
+            # Strip leading/trailing whitespace
             transcript_text = transcript_text.strip()
             
             # Restore original requests methods
