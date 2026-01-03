@@ -94,37 +94,64 @@ async def get_youtube_details(
     if not unique_ids:
         return YoutubeDetailsResponse(items=[], errors=errors)
     
-    # Step 3: Fetch metadata in batches
+    # Step 3: Fetch ALL metadata first (still in batches for efficiency)
     if progress_callback:
-        progress_callback(0, len(unique_ids), "Fetching metadata...")
+        progress_callback(0, len(unique_ids), "Fetching metadata for all videos...")
     
     metadata_dict = await fetch_youtube_metadata(unique_ids)
     
-    if progress_callback:
-        progress_callback(len(metadata_dict), len(unique_ids), "Metadata fetched, fetching transcripts...")
+    # Update total based on actual videos found
+    actual_total = len(metadata_dict)
+    if not actual_total:
+        return YoutubeDetailsResponse(items=[], errors=errors)
     
-    # Step 4: Fetch transcripts for each video
-    # Using blocking calls for current scale (can be optimized with run_in_executor later)
-    total_videos = len(metadata_dict)
+    if progress_callback:
+        progress_callback(0, actual_total, f"Metadata fetched for {actual_total} videos. Processing transcripts...")
+    
+    # Step 4: Process videos ONE BY ONE and report progress after EACH video
     seen_video_ids = set()  # Track processed video IDs to prevent duplicates
-    for idx, (video_id, video) in enumerate(metadata_dict.items(), 1):
-        # Skip if we've already processed this video ID (safety check)
+    processed_count = 0
+    
+    # Process in the order of unique_ids to maintain order
+    for video_id in unique_ids:
+        if video_id not in metadata_dict:
+            continue  # Skip if metadata wasn't found
+        
         if video_id in seen_video_ids:
             continue
         seen_video_ids.add(video_id)
         
+        video = metadata_dict[video_id]
+        
+        # Fetch transcript for this video
         try:
             transcript = fetch_transcript_text(video_id)
             video.transcript = transcript
+            if transcript is None:
+                # Log when transcript is None (but no exception was raised)
+                print(f"ℹ️ No transcript available for {video_id} (video may not have captions)")
         except Exception as e:
             # If transcript fetch fails, set to None and continue
             video.transcript = None
-            print(f"Warning: Could not fetch transcript for {video_id}: {str(e)}")
+            error_type = type(e).__name__
+            if error_type in ['IpBlocked', 'RequestBlocked']:
+                print(f"⚠️ BLOCKED: Could not fetch transcript for {video_id} - YouTube is blocking requests")
+            else:
+                print(f"⚠️ Warning: Could not fetch transcript for {video_id}: {error_type} - {str(e)[:100]}")
         
+        # Add to results
         items.append(video)
+        processed_count += 1
         
+        # Report progress AFTER EACH video is fully processed
         if progress_callback:
-            progress_callback(idx, total_videos, f"Processing video {idx}/{total_videos}")
+            # Truncate title for display if too long
+            title_preview = video.title[:50] + "..." if len(video.title) > 50 else video.title
+            progress_callback(
+                processed_count, 
+                actual_total, 
+                f"Processed video {processed_count}/{actual_total}: {title_preview}"
+            )
     
     # Step 5: Handle errors for IDs that weren't found in metadata
     found_ids = set(metadata_dict.keys())
@@ -274,12 +301,18 @@ async def youtube_details_bulk(
 async def process_bulk_details(job_id: str, inputs: List[str], cancellation_token: asyncio.Event):
     """Background task to process bulk video details."""
     try:
-        # Progress callback
+        # Progress callback - ensure updates are immediately visible
         def progress_callback(current: int, total: int, message: str):
-            if not cancellation_token.is_set():
-                jobs[job_id]["current"] = current
-                jobs[job_id]["total"] = total
-                jobs[job_id]["message"] = message
+            if not cancellation_token.is_set() and job_id in jobs:
+                # Update job status - create new dict to ensure visibility
+                jobs[job_id].update({
+                    "current": current,
+                    "total": total,
+                    "message": message,
+                    "status": "running"
+                })
+                # Force dict update by reassigning (helps with visibility)
+                jobs[job_id] = dict(jobs[job_id])
         
         # Get YouTube details
         response = await get_youtube_details(inputs, progress_callback=progress_callback)

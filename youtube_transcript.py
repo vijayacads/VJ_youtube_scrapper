@@ -67,13 +67,18 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
     
     except Exception as e:
         # Log the error for debugging but return None
-        # Common errors: NoTranscriptFound, TranscriptsDisabled, VideoUnavailable, IpBlocked
+        # Common errors: NoTranscriptFound, TranscriptsDisabled, VideoUnavailable, IpBlocked, RequestBlocked
         error_type = type(e).__name__
-        # Log IP block errors as they're important to know about
-        if error_type == 'IpBlocked':
-            print(f"Warning: YouTube is blocking transcript requests for {video_id} (IP blocked)")
+        error_message = str(e)
+        
+        # Log IP block/request block errors as they're important to know about
+        if error_type in ['IpBlocked', 'RequestBlocked']:
+            print(f"⚠️ BLOCKED: YouTube is blocking transcript requests for {video_id}")
+            print(f"   Error Type: {error_type}")
+            print(f"   Message: {error_message[:200]}...")  # Truncate long messages
+            print(f"   This usually happens when running on cloud providers (Render, AWS, etc.)")
         # Only log other errors if they're not common "no transcript" errors
         elif error_type not in ['NoTranscriptFound', 'TranscriptsDisabled', 'VideoUnavailable']:
-            print(f"Transcript error for {video_id}: {error_type} - {str(e)}")
+            print(f"❌ Transcript error for {video_id}: {error_type} - {error_message[:200]}")
         return None
 
