@@ -71,52 +71,55 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             # Create API instance - it will use the proxy from environment
             api = YouTubeTranscriptApi()
             transcript_list = api.list(video_id)
-        
-        transcript = None
-        
-        # Try to find transcript in preferred languages
-        for lang_code in language_codes:
-            try:
-                transcript = transcript_list.find_transcript([lang_code])
-                break
-            except:
-                continue
-        
-        # If no preferred language found, try auto-generated
-        if transcript is None:
-            try:
-                transcript = transcript_list.find_generated_transcript(language_codes)
-            except:
-                pass
-        
-        # If still no transcript, try to get any available transcript
-        if transcript is None:
-            try:
-                available = list(transcript_list)
-                if available:
-                    transcript = available[0]
-            except:
-                pass
-        
-        if transcript is None:
-            return None
-        
-        # Fetch the actual transcript data
-        transcript_data = transcript.fetch()
-        
-        # Format to plain text using TextFormatter
-        formatter = TextFormatter()
-        transcript_text = formatter.format_transcript(transcript_data)
-        
-        # Clean up the text: remove newlines, backslashes, and extra whitespace
-        import re
-        # First, remove all backslashes (this handles escaped characters)
-        transcript_text = transcript_text.replace('\\', '')
-        # Then replace any remaining newlines with spaces
-        transcript_text = transcript_text.replace('\n', ' ')
-        transcript_text = transcript_text.replace('\r', ' ')
-        # Replace multiple spaces with single space
-        transcript_text = re.sub(r'\s+', ' ', transcript_text)
+            
+            transcript = None
+            
+            # Try to find transcript in preferred languages
+            for lang_code in language_codes:
+                try:
+                    transcript = transcript_list.find_transcript([lang_code])
+                    break
+                except:
+                    continue
+            
+            # If no preferred language found, try auto-generated
+            if transcript is None:
+                try:
+                    transcript = transcript_list.find_generated_transcript(language_codes)
+                except:
+                    pass
+            
+            # If still no transcript, try to get any available transcript
+            if transcript is None:
+                try:
+                    available = list(transcript_list)
+                    if available:
+                        transcript = available[0]
+                except:
+                    pass
+            
+            if transcript is None:
+                # Clear proxy env vars before returning
+                os.environ.pop('HTTP_PROXY', None)
+                os.environ.pop('HTTPS_PROXY', None)
+                return None
+            
+            # Fetch the actual transcript data
+            transcript_data = transcript.fetch()
+            
+            # Format to plain text using TextFormatter
+            formatter = TextFormatter()
+            transcript_text = formatter.format_transcript(transcript_data)
+            
+            # Clean up the text: remove newlines, backslashes, and extra whitespace
+            import re
+            # First, remove all backslashes (this handles escaped characters)
+            transcript_text = transcript_text.replace('\\', '')
+            # Then replace any remaining newlines with spaces
+            transcript_text = transcript_text.replace('\n', ' ')
+            transcript_text = transcript_text.replace('\r', ' ')
+            # Replace multiple spaces with single space
+            transcript_text = re.sub(r'\s+', ' ', transcript_text)
             # Strip leading/trailing whitespace
             transcript_text = transcript_text.strip()
             
@@ -126,6 +129,7 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> 
             
             return transcript_text
         
+        except Exception as e:
             # Clear proxy env vars on error
             os.environ.pop('HTTP_PROXY', None)
             os.environ.pop('HTTPS_PROXY', None)
