@@ -610,7 +610,7 @@ async def cancel_job(job_id: str):
 
 
 @app.get("/jobs/{job_id}/download")
-async def download_job_result(job_id: str, format: str = Query("json", regex="^(json|csv|excel)$")):
+async def download_job_result(job_id: str, format: str = Query("json", pattern="^(json|csv|excel)$")):
     """
     Download job result in specified format (json, csv, excel).
     """
