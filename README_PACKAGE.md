@@ -62,6 +62,15 @@ python3 main.py
 
 The application will automatically open in your browser at `http://localhost:8000`
 
+## Stopping the Server
+
+You can stop the server in two ways:
+
+1. **Using the UI**: Click the "🛑 Stop Server" button in the web interface (header area)
+2. **Using the terminal**: Press `Ctrl+C` in the terminal/command prompt window
+
+**Note**: The "Stop Server" button only works in standalone mode (not on Render).
+
 ## Usage
 
 1. **Single Video**: Enter a YouTube URL or video ID to get details and transcript

@@ -22,7 +22,9 @@ fi
 echo "[INFO] Starting server on http://localhost:8000"
 echo "[INFO] The application will open in your browser automatically"
 echo ""
-echo "Press Ctrl+C to stop the server"
+echo "To stop the server:"
+echo "  - Click the 'Stop Server' button in the web interface, OR"
+echo "  - Press Ctrl+C in this terminal"
 echo ""
 
 # Open browser (works on macOS and most Linux)
