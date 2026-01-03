@@ -776,3 +776,32 @@ async def download_package():
         raise HTTPException(status_code=500, detail=f"Error creating package: {str(e)}")
 
 
+@app.post("/shutdown")
+async def shutdown_server():
+    """
+    Shutdown the server gracefully.
+    Only works in standalone mode (not on Render).
+    """
+    import sys
+    
+    # Check if running on Render (has RENDER env var)
+    if os.getenv("RENDER"):
+        raise HTTPException(
+            status_code=403, 
+            detail="Shutdown is not available on Render. This endpoint only works in standalone mode."
+        )
+    
+    # For standalone mode, shutdown the server
+    async def shutdown_background():
+        await asyncio.sleep(0.5)  # Give time for response to be sent
+        os._exit(0)
+    
+    # Start background task to shutdown
+    asyncio.create_task(shutdown_background())
+    
+    return {
+        "message": "Server is shutting down...",
+        "status": "shutting_down"
+    }
+
+
