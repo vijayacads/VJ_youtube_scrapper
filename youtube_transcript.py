@@ -26,7 +26,7 @@ if os.getenv("WEBSHARE_PROXIES"):
     WEBSHARE_PROXIES = [p.strip() for p in os.getenv("WEBSHARE_PROXIES").split(",") if p.strip()]
 
 
-def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en"]) -> Optional[str]:
+def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en", "hi", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar"]) -> Optional[str]:
     """
     Fetches YouTube video transcript as plain text.
     

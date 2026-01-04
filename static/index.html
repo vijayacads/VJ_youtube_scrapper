@@ -510,7 +510,10 @@
                     body: JSON.stringify({
                         channel_id_or_url: channelUrl,
                         include_transcripts: document.getElementById('include-transcripts').value === 'true',
-                        max_videos: parseInt(document.getElementById('max-videos').value) || null
+                        max_videos: (() => {
+                            const val = parseInt(document.getElementById('max-videos').value);
+                            return (val && val > 0) ? val : null;  // 0 or empty = unlimited
+                        })()
                     })
                 });
                 
@@ -627,11 +630,17 @@
             // Poll immediately, then every second
             const poll = async () => {
                 try {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/926059e8-61ad-4936-9bd9-4f8e4e39c23e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:630',message:'poll function called',data:{jobId:jobId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                    // #endregion
                     const response = await fetch(`/jobs/${jobId}`);
                     if (!response.ok) {
                         throw new Error('Failed to fetch job status');
                     }
                     const status = await response.json();
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/926059e8-61ad-4936-9bd9-4f8e4e39c23e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:636',message:'status received from API',data:{jobId:jobId,current:status.current,total:status.total,status:status.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                    // #endregion
                     updateProgress(status);
                     
                     if (status.status === 'completed') {
@@ -659,6 +668,9 @@
         }
         
         function updateProgress(status) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/926059e8-61ad-4936-9bd9-4f8e4e39c23e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:661',message:'updateProgress called',data:{current:status.current,total:status.total,status:status.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
             const current = status.current || 0;
             const total = status.total || 1;
             
