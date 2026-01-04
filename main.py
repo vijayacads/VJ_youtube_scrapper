@@ -535,8 +535,14 @@ async def process_channel_export(job_id: str, request: ChannelExportRequest, can
         
         # Optionally skip transcripts if not requested
         if not request.include_transcripts:
+            print(f"⚠️ Transcripts disabled by user request for channel export")
             for item in details_response.items:
                 item.transcript = None
+        else:
+            # Log transcript status for debugging
+            transcripts_found = sum(1 for item in details_response.items if item.transcript is not None)
+            transcripts_missing = len(details_response.items) - transcripts_found
+            print(f"ℹ️ Channel export complete: {transcripts_found} videos with transcripts, {transcripts_missing} without transcripts")
         
         # Always store as JSON/YoutubeDetailsResponse format
         # Format conversion happens at download time based on user's choice
