@@ -22,12 +22,13 @@ except ImportError:
 
 from models import (
     YoutubeDetailsRequest, YoutubeDetailsResponse, YoutubeVideoFull, YoutubeError,
-    YoutubeBulkRequest, ChannelExportRequest, ChannelExportResponse, JobStatus
+    YoutubeBulkRequest, ChannelExportRequest, ChannelExportResponse, JobStatus,
+    ScraperRequest, ScraperResponse
 )
 from youtube_id import extract_video_id
 from youtube_metadata import fetch_youtube_metadata
 from youtube_transcript import fetch_transcript_text
-from youtube_channel import fetch_channel_video_ids, resolve_channel_id, get_channel_title
+from youtube_channel import fetch_channel_video_ids, resolve_channel_id, get_channel_title, get_channel_video_count, scrape_popular_videos
 
 # Load environment variables in development
 load_dotenv()
@@ -60,7 +61,8 @@ async def health():
 
 async def get_youtube_details(
     inputs: List[str], 
-    progress_callback: Optional[Callable[[int, int, str], None]] = None
+    progress_callback: Optional[Callable[[int, int, str], None]] = None,
+    include_transcripts: bool = True
 ) -> YoutubeDetailsResponse:
     """
     Orchestrates fetching YouTube video details including metadata and transcripts.
@@ -108,8 +110,12 @@ async def get_youtube_details(
     if not actual_total:
         return YoutubeDetailsResponse(items=[], errors=errors)
     
-    if progress_callback:
-        progress_callback(0, actual_total, f"Metadata fetched for {actual_total} videos. Processing transcripts...")
+    if include_transcripts:
+        if progress_callback:
+            progress_callback(0, actual_total, f"Metadata fetched for {actual_total} videos. Processing transcripts...")
+    else:
+        if progress_callback:
+            progress_callback(0, actual_total, f"Metadata fetched for {actual_total} videos. Skipping transcripts...")
     
     # Step 4: Process videos ONE BY ONE and report progress after EACH video
     seen_video_ids = set()  # Track processed video IDs to prevent duplicates
@@ -126,28 +132,32 @@ async def get_youtube_details(
         
         video = metadata_dict[video_id]
         
-        # Fetch transcript for this video
-        try:
-            transcript = fetch_transcript_text(video_id)
-            # Check if it was blocked vs just unavailable
-            if transcript == "__BLOCKED__":
-                # Was blocked - already logged in fetch_transcript_text
+        # Fetch transcript for this video (only if requested)
+        if include_transcripts:
+            try:
+                transcript = fetch_transcript_text(video_id)
+                # Check if it was blocked vs just unavailable
+                if transcript == "__BLOCKED__":
+                    # Was blocked - already logged in fetch_transcript_text
+                    video.transcript = None
+                elif transcript is None:
+                    # No transcript available (not blocked, just no captions)
+                    video.transcript = None
+                    print(f"ℹ️ No transcript available for {video_id} (video may not have captions)")
+                else:
+                    # Successfully fetched transcript
+                    video.transcript = transcript
+            except Exception as e:
+                # If transcript fetch fails with unexpected error, set to None and continue
                 video.transcript = None
-            elif transcript is None:
-                # No transcript available (not blocked, just no captions)
-                video.transcript = None
-                print(f"ℹ️ No transcript available for {video_id} (video may not have captions)")
-            else:
-                # Successfully fetched transcript
-                video.transcript = transcript
-        except Exception as e:
-            # If transcript fetch fails with unexpected error, set to None and continue
+                error_type = type(e).__name__
+                if error_type in ['IpBlocked', 'RequestBlocked']:
+                    print(f"⚠️ BLOCKED: Could not fetch transcript for {video_id} - YouTube is blocking requests")
+                else:
+                    print(f"⚠️ Warning: Could not fetch transcript for {video_id}: {error_type} - {str(e)[:100]}")
+        else:
+            # Transcripts disabled - set to None
             video.transcript = None
-            error_type = type(e).__name__
-            if error_type in ['IpBlocked', 'RequestBlocked']:
-                print(f"⚠️ BLOCKED: Could not fetch transcript for {video_id} - YouTube is blocking requests")
-            else:
-                print(f"⚠️ Warning: Could not fetch transcript for {video_id}: {error_type} - {str(e)[:100]}")
         
         # Add to results
         items.append(video)
@@ -155,6 +165,13 @@ async def get_youtube_details(
         
         # Report progress AFTER EACH video is fully processed
         if progress_callback:
+            # #region agent log
+            import json
+            try:
+                with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:157","message":"progress_callback called in get_youtube_details","data":{"current":processed_count,"total":actual_total,"video_id":video_id},"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}) + '\n')
+            except: pass
+            # #endregion
             # Truncate title for display if too long
             title_preview = video.title[:50] + "..." if len(video.title) > 50 else video.title
             progress_callback(
@@ -271,11 +288,15 @@ async def youtube_details_bulk(
         file_content_type = file.content_type or "text/plain"
         inputs.extend(parse_bulk_input(content_str, file_content_type))
     # Process JSON body if provided (application/json)
-    elif "application/json" in content_type:
+    include_transcripts = True  # Default to True for backward compatibility
+    if "application/json" in content_type:
         try:
             body = await http_request.json()
             if "urls_text" in body and body["urls_text"]:
                 inputs.extend(parse_bulk_input(body["urls_text"], "text/plain"))
+            # Extract include_transcripts from request body
+            if "include_transcripts" in body:
+                include_transcripts = bool(body["include_transcripts"])
         except Exception as e:
             raise HTTPException(
                 status_code=400,
@@ -303,16 +324,23 @@ async def youtube_details_bulk(
     }
     
     # Start processing in background
-    asyncio.create_task(process_bulk_details(job_id, inputs, cancellation_token))
+    asyncio.create_task(process_bulk_details(job_id, inputs, cancellation_token, include_transcripts))
     
     return {"job_id": job_id, "message": "Job started. Check /jobs/{job_id} for progress."}
 
 
-async def process_bulk_details(job_id: str, inputs: List[str], cancellation_token: asyncio.Event):
+async def process_bulk_details(job_id: str, inputs: List[str], cancellation_token: asyncio.Event, include_transcripts: bool = True):
     """Background task to process bulk video details."""
     try:
         # Progress callback - ensure updates are immediately visible
         def progress_callback(current: int, total: int, message: str):
+            # #region agent log
+            import json
+            try:
+                with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:315","message":"progress_callback entry in process_bulk_details","data":{"current":current,"total":total,"job_id":job_id},"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}) + '\n')
+            except: pass
+            # #endregion
             if not cancellation_token.is_set() and job_id in jobs:
                 # Update job status - create new dict to ensure visibility
                 jobs[job_id].update({
@@ -321,11 +349,23 @@ async def process_bulk_details(job_id: str, inputs: List[str], cancellation_toke
                     "message": message,
                     "status": "running"
                 })
+                # #region agent log
+                try:
+                    with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:318","message":"job dict updated (before reassign)","data":{"current":jobs[job_id]["current"],"total":jobs[job_id]["total"],"job_id":job_id},"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}) + '\n')
+                except: pass
+                # #endregion
                 # Force dict update by reassigning (helps with visibility)
                 jobs[job_id] = dict(jobs[job_id])
+                # #region agent log
+                try:
+                    with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:325","message":"job dict reassigned (after reassign)","data":{"current":jobs[job_id]["current"],"total":jobs[job_id]["total"],"job_id":job_id},"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}) + '\n')
+                except: pass
+                # #endregion
         
         # Get YouTube details
-        response = await get_youtube_details(inputs, progress_callback=progress_callback)
+        response = await get_youtube_details(inputs, progress_callback=progress_callback, include_transcripts=include_transcripts)
         
         if cancellation_token.is_set():
             jobs[job_id]["status"] = "cancelled"
@@ -491,10 +531,23 @@ async def process_channel_export(job_id: str, request: ChannelExportRequest, can
             }
             return
         
+        # Check channel video count
+        jobs[job_id]["message"] = "Checking channel size..."
+        video_count = await get_channel_video_count(resolved_id)
+        if video_count is not None and video_count > 500:
+            jobs[job_id] = {
+                "status": "error",
+                "current": 0,
+                "total": 0,
+                "message": f"Channel has {video_count} videos (limit: 500). For large channels, use the Scraper tab to get top videos, then paste URLs into Bulk Videos tab.",
+                "result": None
+            }
+            return
+        
         jobs[job_id]["message"] = "Fetching video list..."
         
-        # Fetch all video IDs from channel
-        video_ids = await fetch_channel_video_ids(resolved_id, request.max_videos)
+        # Fetch video IDs from channel (with sort_by parameter)
+        video_ids = await fetch_channel_video_ids(resolved_id, request.max_videos, request.sort_by)
         
         if cancellation_token.is_set():
             jobs[job_id]["status"] = "cancelled"
@@ -518,10 +571,49 @@ async def process_channel_export(job_id: str, request: ChannelExportRequest, can
         
         # Progress callback
         def progress_callback(current: int, total: int, message: str):
+            # #region agent log
+            import json
+            try:
+                with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:520","message":"progress_callback entry in process_channel_export","data":{"current":current,"total":total,"job_id":job_id},"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}) + '\n')
+            except: pass
+            # #endregion
             if not cancellation_token.is_set() and job_id in jobs:
                 jobs[job_id]["current"] = current
                 jobs[job_id]["total"] = total
                 jobs[job_id]["message"] = f"Processing video {current}/{total}: {message}"
+                # #region agent log
+                try:
+                    with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+                        f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:523","message":"job dict updated in process_channel_export","data":{"current":jobs[job_id]["current"],"total":jobs[job_id]["total"],"job_id":job_id},"sessionId":"debug-session","runId":"run1","hypothesisId":"D"}) + '\n')
+                except: pass
+                # #endregion
+        
+        # If sorting by popular, we need to fetch metadata first, sort by view_count, then process
+        if request.sort_by == "popular":
+            jobs[job_id]["message"] = "Fetching metadata for sorting..."
+            # Fetch metadata with statistics
+            metadata_dict = await fetch_youtube_metadata(video_ids)
+            
+            if cancellation_token.is_set():
+                jobs[job_id]["status"] = "cancelled"
+                return
+            
+            # Sort by view_count (descending), handling None values
+            sorted_videos = sorted(
+                metadata_dict.values(),
+                key=lambda v: v.view_count if v.view_count is not None else 0,
+                reverse=True
+            )
+            
+            # Take top max_videos (or all if None)
+            if request.max_videos:
+                sorted_videos = sorted_videos[:request.max_videos]
+            
+            # Extract video IDs in sorted order
+            video_ids = [v.id for v in sorted_videos]
+            jobs[job_id]["total"] = len(video_ids)
+            jobs[job_id]["message"] = f"Sorted {len(video_ids)} videos by popularity. Processing..."
         
         # Fetch details for all videos
         details_response = await get_youtube_details(
@@ -576,6 +668,87 @@ async def process_channel_export(job_id: str, request: ChannelExportRequest, can
         }
 
 
+@app.post("/youtube/scraper/extract")
+async def scraper_extract(request: ScraperRequest):
+    """
+    Extract video URLs from YouTube channel's Popular page using web scraping.
+    
+    Returns a job_id immediately. Check progress and get result via /jobs/{job_id}
+    """
+    job_id = str(uuid.uuid4())
+    cancellation_token = asyncio.Event()
+    
+    # Initialize job
+    jobs[job_id] = {
+        "status": "running",
+        "current": 0,
+        "total": 0,
+        "message": "Starting...",
+        "cancellation_token": cancellation_token,
+        "result": None
+    }
+    
+    # Start processing in background
+    asyncio.create_task(process_scraper_extract(job_id, request, cancellation_token))
+    
+    return {"job_id": job_id, "message": "Job started. Check /jobs/{job_id} for progress."}
+
+
+async def process_scraper_extract(job_id: str, request: ScraperRequest, cancellation_token: asyncio.Event):
+    """Background task to process scraper extraction."""
+    try:
+        content_type_label = "shorts" if request.content_type == "shorts" else "videos"
+        jobs[job_id]["message"] = f"Scraping Popular {content_type_label} page..."
+        
+        # Scrape popular videos or shorts
+        video_urls = await scrape_popular_videos(request.channel_url, request.max_videos, request.content_type)
+        
+        if cancellation_token.is_set():
+            jobs[job_id]["status"] = "cancelled"
+            return
+        
+        if not video_urls:
+            jobs[job_id] = {
+                "status": "error",
+                "current": 0,
+                "total": 0,
+                "message": "No videos found. Please check the channel URL.",
+                "result": None
+            }
+            return
+        
+        # Create response
+        result = ScraperResponse(
+            video_urls=video_urls,
+            count=len(video_urls)
+        )
+        
+        jobs[job_id] = {
+            "status": "completed",
+            "current": len(video_urls),
+            "total": len(video_urls),
+            "message": f"Extracted {len(video_urls)} video URLs",
+            "result": result.model_dump() if hasattr(result, 'model_dump') else result.dict()
+        }
+        
+    except ImportError as e:
+        jobs[job_id] = {
+            "status": "error",
+            "current": 0,
+            "total": 0,
+            "message": f"Playwright not installed: {str(e)}. Install with: pip install playwright && playwright install chromium",
+            "result": None
+        }
+    except Exception as e:
+        jobs[job_id] = {
+            "status": "error",
+            "current": 0,
+            "total": 0,
+            "message": f"Error scraping videos: {str(e)}",
+            "result": None
+        }
+
+
 @app.get("/jobs/{job_id}", response_model=JobStatus)
 async def get_job_status(job_id: str):
     """
@@ -586,6 +759,13 @@ async def get_job_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     
     job = jobs[job_id]
+    # #region agent log
+    import json
+    try:
+        with open(r'c:\Users\vijay\Documents\GitHub\VJ_youtube_scrapper\.cursor\debug.log', 'a', encoding='utf-8') as f:
+            f.write(json.dumps({"id":f"log_{int(__import__('time').time()*1000)}","timestamp":int(__import__('time').time()*1000),"location":"main.py:582","message":"get_job_status endpoint called","data":{"job_id":job_id,"current":job["current"],"total":job["total"],"status":job["status"]},"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}) + '\n')
+    except: pass
+    # #endregion
     return JobStatus(
         job_id=job_id,
         status=job["status"],

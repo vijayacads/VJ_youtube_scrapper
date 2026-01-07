@@ -76,6 +76,13 @@ You can stop the server in two ways:
 1. **Single Video**: Enter a YouTube URL or video ID to get details and transcript
 2. **Bulk Videos**: Paste multiple URLs (one per line) to process in bulk
 3. **Channel Export**: Enter a channel URL to export all videos with transcripts
+   - **Note**: Channel Export only works for channels with **under 500 videos**
+   - For larger channels, use the **Scraper tab** instead
+4. **Scraper**: Extract video URLs from a channel's Popular page or search results
+   - Works for channels of any size
+   - For channel URLs, automatically sorts by Popular (most viewed) videos
+   - Can scrape search results (e.g., search within a channel or YouTube-wide)
+   - Paste the extracted URLs into Bulk Videos tab to process them
 
 ## System Requirements
 

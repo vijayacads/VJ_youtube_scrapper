@@ -385,6 +385,7 @@
                 <button class="tab active" onclick="switchTab('channel')">Channel Export</button>
                 <button class="tab" onclick="switchTab('bulk')">Bulk Videos</button>
                 <button class="tab" onclick="switchTab('single')">Single Video</button>
+                <button class="tab" onclick="switchTab('scraper')">Scraper</button>
             </div>
             
             <!-- Channel Export Tab -->
@@ -393,6 +394,13 @@
                 <div class="form-group">
                     <label>Channel URL or ID:</label>
                     <input type="text" id="channel-url" placeholder="https://www.youtube.com/@channelname or channel ID">
+                </div>
+                <div class="form-group">
+                    <label>Sort By:</label>
+                    <select id="sort-by">
+                        <option value="popular">Popular</option>
+                        <option value="latest">Latest</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Include Transcripts:</label>
@@ -415,6 +423,13 @@
                     <label>Video URLs (one per line):</label>
                     <textarea id="bulk-urls" placeholder="https://www.youtube.com/watch?v=VIDEO1&#10;https://www.youtube.com/watch?v=VIDEO2&#10;..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label>Include Transcripts:</label>
+                    <select id="bulk-include-transcripts">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
                 <button class="btn" onclick="startBulkProcessing()">Start Processing</button>
             </div>
             
@@ -426,6 +441,40 @@
                     <input type="text" id="single-url" placeholder="https://www.youtube.com/watch?v=VIDEO_ID">
                 </div>
                 <button class="btn" onclick="startSingleVideo()">Get Details</button>
+            </div>
+            
+            <!-- Scraper Tab -->
+            <div id="scraper-tab" class="tab-content">
+                <h2>Scrape Popular Videos</h2>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                    Extract video URLs from a channel's Popular page or search results. Perfect for large channels (>500 videos). 
+                    <br><strong>Tip:</strong> You can search within a channel or YouTube-wide, then paste that search URL here to scrape targeted videos.
+                    <br>Paste the extracted URLs into the Bulk Videos tab to process them.
+                </p>
+                <div class="form-group">
+                    <label>Channel URL or Search URL:</label>
+                    <input type="text" id="scraper-channel-url" placeholder="https://www.youtube.com/@channelname or https://www.youtube.com/@channel/search?query=term">
+                </div>
+                <div class="form-group">
+                    <label>Content Type:</label>
+                    <select id="scraper-content-type">
+                        <option value="videos">Videos</option>
+                        <option value="shorts">Shorts</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Max Videos:</label>
+                    <input type="number" id="scraper-max-videos" value="100" min="1">
+                </div>
+                <button class="btn" onclick="startScraper()">Extract Video URLs</button>
+                <div class="form-group" id="scraper-output-group" style="display: none; margin-top: 20px;">
+                    <label>Extracted URLs:</label>
+                    <textarea id="scraper-output" rows="10" readonly style="font-family: monospace; font-size: 12px;"></textarea>
+                    <div style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="copyScraperUrls()">Copy URLs</button>
+                        <button class="btn btn-secondary" onclick="copyToBulkVideos()">Copy to Bulk Videos</button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -513,7 +562,8 @@
                         max_videos: (() => {
                             const val = parseInt(document.getElementById('max-videos').value);
                             return (val && val > 0) ? val : null;  // 0 or empty = unlimited
-                        })()
+                        })(),
+                        sort_by: document.getElementById('sort-by').value
                     })
                 });
                 
@@ -551,12 +601,15 @@
             btn.disabled = true;
             btn.textContent = 'Starting...';
             
+            const includeTranscripts = document.getElementById('bulk-include-transcripts').value === 'true';
+            
             try {
                 const response = await fetch('/youtube/details/bulk', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        urls_text: urls
+                        urls_text: urls,
+                        include_transcripts: includeTranscripts
                     })
                 });
                 
@@ -645,7 +698,21 @@
                     
                     if (status.status === 'completed') {
                         clearInterval(pollInterval);
-                        showResult(status.result);
+                        // Check if this is a scraper result
+                        if (status.result && status.result.video_urls) {
+                            // Scraper result - show in scraper output
+                            const urls = status.result.video_urls.join('\n');
+                            document.getElementById('scraper-output').value = urls;
+                            document.getElementById('scraper-output-group').style.display = 'block';
+                            // Switch to scraper tab to show results
+                            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                            document.querySelector('.tab[onclick="switchTab(\'scraper\')"]').classList.add('active');
+                            document.getElementById('scraper-tab').classList.add('active');
+                        } else {
+                            // Normal result - show in result section
+                            showResult(status.result);
+                        }
                         document.getElementById('cancel-btn').style.display = 'none';
                     } else if (status.status === 'cancelled' || status.status === 'error') {
                         clearInterval(pollInterval);
@@ -806,6 +873,77 @@
         function downloadAsJSON() { downloadResult('json'); }
         function downloadAsCSV() { downloadResult('csv'); }
         function downloadAsExcel() { downloadResult('excel'); }
+        
+        async function startScraper() {
+            const channelUrl = document.getElementById('scraper-channel-url').value.trim();
+            if (!channelUrl) {
+                alert('Please enter a channel URL');
+                return;
+            }
+            
+            const maxVideos = parseInt(document.getElementById('scraper-max-videos').value) || 100;
+            const contentType = document.getElementById('scraper-content-type').value;
+            
+            // Show loading state
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Extracting...';
+            
+            try {
+                const response = await fetch('/youtube/scraper/extract', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        channel_url: channelUrl,
+                        max_videos: maxVideos,
+                        content_type: contentType
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to start scraper');
+                }
+                
+                const data = await response.json();
+                if (data.job_id) {
+                    startPolling(data.job_id);
+                } else {
+                    throw new Error('No job_id returned: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Extract Video URLs';
+            }
+        }
+        
+        function copyScraperUrls() {
+            const output = document.getElementById('scraper-output');
+            output.select();
+            document.execCommand('copy');
+            alert('URLs copied to clipboard!');
+        }
+        
+        function copyToBulkVideos() {
+            const urls = document.getElementById('scraper-output').value;
+            if (!urls) {
+                alert('No URLs to copy');
+                return;
+            }
+            
+            // Switch to bulk videos tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelector('.tab[onclick="switchTab(\'bulk\')"]').classList.add('active');
+            document.getElementById('bulk-tab').classList.add('active');
+            
+            // Set the URLs
+            document.getElementById('bulk-urls').value = urls;
+            
+            alert('URLs copied to Bulk Videos tab!');
+        }
         
         async function stopServer() {
             if (!confirm('Are you sure you want to stop the server? This will close the application.')) {

@@ -17,6 +17,7 @@ class YoutubeVideoFull(BaseModel):
     duration: str
     thumbnails: Dict[str, Optional[str]]
     transcript: Optional[str] = None
+    view_count: Optional[int] = None
 
 
 class YoutubeError(BaseModel):
@@ -37,6 +38,7 @@ class ChannelExportRequest(BaseModel):
     channel_id_or_url: str
     include_transcripts: bool = True
     max_videos: Optional[int] = None  # Limit number of videos (optional)
+    sort_by: str = "popular"  # "popular" or "latest"
 
 
 class ChannelExportResponse(BaseModel):
@@ -46,6 +48,17 @@ class ChannelExportResponse(BaseModel):
     processed_videos: int
     data: Union[YoutubeDetailsResponse, str]  # Response or CSV string
     errors: List[YoutubeError]
+
+
+class ScraperRequest(BaseModel):
+    channel_url: str
+    max_videos: int = 100
+    content_type: str = "videos"  # "videos" or "shorts"
+
+
+class ScraperResponse(BaseModel):
+    video_urls: List[str]
+    count: int
 
 
 class JobStatus(BaseModel):
