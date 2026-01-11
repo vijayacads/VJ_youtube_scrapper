@@ -26,7 +26,7 @@ if os.getenv("WEBSHARE_PROXIES"):
     WEBSHARE_PROXIES = [p.strip() for p in os.getenv("WEBSHARE_PROXIES").split(",") if p.strip()]
 
 
-def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en", "hi", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar"]) -> Optional[str]:
+def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en", "hi", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar"], truncate_transcripts: bool = False, transcript_char_limit: Optional[int] = None) -> Optional[str]:
     """
     Fetches YouTube video transcript as plain text.
     
@@ -35,6 +35,12 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en", "hi"
     
     On localhost/standalone: Works directly WITHOUT any proxies.
     On cloud (Render): Uses proxy rotation to bypass IP blocking.
+    
+    Args:
+        video_id: YouTube video ID
+        language_codes: List of language codes to try
+        truncate_transcripts: If True, truncate transcript to transcript_char_limit
+        transcript_char_limit: Maximum number of characters (only used if truncate_transcripts is True)
     """
     # Check if running on Render (cloud) or localhost (standalone)
     is_cloud = os.getenv("RENDER") is not None
@@ -104,6 +110,10 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en", "hi"
             transcript_text = re.sub(r'\s+', ' ', transcript_text)
             # Strip leading/trailing whitespace
             transcript_text = transcript_text.strip()
+            
+            # Apply truncation if requested
+            if truncate_transcripts and transcript_char_limit and len(transcript_text) > transcript_char_limit:
+                transcript_text = transcript_text[:transcript_char_limit]
             
             return transcript_text
         
@@ -244,6 +254,10 @@ def fetch_transcript_text(video_id: str, language_codes: List[str] = ["en", "hi"
             transcript_text = re.sub(r'\s+', ' ', transcript_text)
             # Strip leading/trailing whitespace
             transcript_text = transcript_text.strip()
+            
+            # Apply truncation if requested
+            if truncate_transcripts and transcript_char_limit and len(transcript_text) > transcript_char_limit:
+                transcript_text = transcript_text[:transcript_char_limit]
             
             # Restore original requests methods
             requests.get = original_get

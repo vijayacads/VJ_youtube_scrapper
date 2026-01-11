@@ -39,6 +39,8 @@ class ChannelExportRequest(BaseModel):
     include_transcripts: bool = True
     max_videos: Optional[int] = None  # Limit number of videos (optional)
     sort_by: str = "popular"  # "popular" or "latest"
+    truncate_transcripts: bool = False  # Whether to truncate transcripts
+    transcript_char_limit: Optional[int] = None  # Character limit for transcripts (in multiples of 1000)
 
 
 class ChannelExportResponse(BaseModel):

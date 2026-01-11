@@ -410,6 +410,69 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>Truncate Transcripts:</label>
+                    <select id="truncate-transcripts">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+                <div class="form-group" id="channel-char-limit-group" style="display: none;">
+                    <label>Character Limit (per transcript):</label>
+                    <select id="channel-char-limit">
+                        <option value="1000">1K</option>
+                        <option value="2000">2K</option>
+                        <option value="3000">3K</option>
+                        <option value="4000">4K</option>
+                        <option value="5000">5K</option>
+                        <option value="6000">6K</option>
+                        <option value="7000">7K</option>
+                        <option value="8000">8K</option>
+                        <option value="9000">9K</option>
+                        <option value="10000" selected>10K</option>
+                        <option value="20000">20K</option>
+                        <option value="30000">30K</option>
+                        <option value="40000">40K</option>
+                        <option value="50000">50K</option>
+                        <option value="60000">60K</option>
+                        <option value="70000">70K</option>
+                        <option value="80000">80K</option>
+                        <option value="90000">90K</option>
+                        <option value="100000">100K</option>
+                        <option value="150000">150K</option>
+                        <option value="200000">200K</option>
+                        <option value="250000">250K</option>
+                        <option value="300000">300K</option>
+                        <option value="350000">350K</option>
+                        <option value="400000">400K</option>
+                        <option value="450000">450K</option>
+                        <option value="500000">500K</option>
+                    </select>
+                </div>
+                <div class="form-group" id="channel-ref-table" style="display: none; margin-top: 20px;">
+                    <label>Reference: Character Limit vs Video Duration</label>
+                    <div style="overflow-x: auto; margin-top: 10px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #f5f5f5;">
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Characters</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Video Duration</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Words (approx)</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">KB Size (approx)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">5K</td><td style="padding: 6px; border: 1px solid #ddd;">~5 min</td><td style="padding: 6px; border: 1px solid #ddd;">~833</td><td style="padding: 6px; border: 1px solid #ddd;">~5 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">10K</td><td style="padding: 6px; border: 1px solid #ddd;">~10 min</td><td style="padding: 6px; border: 1px solid #ddd;">~1,667</td><td style="padding: 6px; border: 1px solid #ddd;">~10 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">20K</td><td style="padding: 6px; border: 1px solid #ddd;">~20 min</td><td style="padding: 6px; border: 1px solid #ddd;">~3,333</td><td style="padding: 6px; border: 1px solid #ddd;">~20 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">50K</td><td style="padding: 6px; border: 1px solid #ddd;">~55 min</td><td style="padding: 6px; border: 1px solid #ddd;">~8,333</td><td style="padding: 6px; border: 1px solid #ddd;">~50 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">100K</td><td style="padding: 6px; border: 1px solid #ddd;">~1.8 hours</td><td style="padding: 6px; border: 1px solid #ddd;">~16,667</td><td style="padding: 6px; border: 1px solid #ddd;">~100 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">200K</td><td style="padding: 6px; border: 1px solid #ddd;">~3.7 hours</td><td style="padding: 6px; border: 1px solid #ddd;">~33,333</td><td style="padding: 6px; border: 1px solid #ddd;">~200 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">500K</td><td style="padding: 6px; border: 1px solid #ddd;">~9.3 hours</td><td style="padding: 6px; border: 1px solid #ddd;">~83,333</td><td style="padding: 6px; border: 1px solid #ddd;">~500 KB</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="form-group">
                     <label>Max Videos (0 = all):</label>
                     <input type="number" id="max-videos" value="0" min="0">
                 </div>
@@ -429,6 +492,69 @@
                         <option value="true">Yes</option>
                         <option value="false">No</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Truncate Transcripts:</label>
+                    <select id="bulk-truncate-transcripts">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                    </select>
+                </div>
+                <div class="form-group" id="bulk-char-limit-group" style="display: none;">
+                    <label>Character Limit (per transcript):</label>
+                    <select id="bulk-char-limit">
+                        <option value="1000">1K</option>
+                        <option value="2000">2K</option>
+                        <option value="3000">3K</option>
+                        <option value="4000">4K</option>
+                        <option value="5000">5K</option>
+                        <option value="6000">6K</option>
+                        <option value="7000">7K</option>
+                        <option value="8000">8K</option>
+                        <option value="9000">9K</option>
+                        <option value="10000" selected>10K</option>
+                        <option value="20000">20K</option>
+                        <option value="30000">30K</option>
+                        <option value="40000">40K</option>
+                        <option value="50000">50K</option>
+                        <option value="60000">60K</option>
+                        <option value="70000">70K</option>
+                        <option value="80000">80K</option>
+                        <option value="90000">90K</option>
+                        <option value="100000">100K</option>
+                        <option value="150000">150K</option>
+                        <option value="200000">200K</option>
+                        <option value="250000">250K</option>
+                        <option value="300000">300K</option>
+                        <option value="350000">350K</option>
+                        <option value="400000">400K</option>
+                        <option value="450000">450K</option>
+                        <option value="500000">500K</option>
+                    </select>
+                </div>
+                <div class="form-group" id="bulk-ref-table" style="display: none; margin-top: 20px;">
+                    <label>Reference: Character Limit vs Video Duration</label>
+                    <div style="overflow-x: auto; margin-top: 10px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #f5f5f5;">
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Characters</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Video Duration</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Words (approx)</th>
+                                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">KB Size (approx)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">5K</td><td style="padding: 6px; border: 1px solid #ddd;">~5 min</td><td style="padding: 6px; border: 1px solid #ddd;">~833</td><td style="padding: 6px; border: 1px solid #ddd;">~5 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">10K</td><td style="padding: 6px; border: 1px solid #ddd;">~10 min</td><td style="padding: 6px; border: 1px solid #ddd;">~1,667</td><td style="padding: 6px; border: 1px solid #ddd;">~10 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">20K</td><td style="padding: 6px; border: 1px solid #ddd;">~20 min</td><td style="padding: 6px; border: 1px solid #ddd;">~3,333</td><td style="padding: 6px; border: 1px solid #ddd;">~20 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">50K</td><td style="padding: 6px; border: 1px solid #ddd;">~55 min</td><td style="padding: 6px; border: 1px solid #ddd;">~8,333</td><td style="padding: 6px; border: 1px solid #ddd;">~50 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">100K</td><td style="padding: 6px; border: 1px solid #ddd;">~1.8 hours</td><td style="padding: 6px; border: 1px solid #ddd;">~16,667</td><td style="padding: 6px; border: 1px solid #ddd;">~100 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">200K</td><td style="padding: 6px; border: 1px solid #ddd;">~3.7 hours</td><td style="padding: 6px; border: 1px solid #ddd;">~33,333</td><td style="padding: 6px; border: 1px solid #ddd;">~200 KB</td></tr>
+                                <tr><td style="padding: 6px; border: 1px solid #ddd;">500K</td><td style="padding: 6px; border: 1px solid #ddd;">~9.3 hours</td><td style="padding: 6px; border: 1px solid #ddd;">~83,333</td><td style="padding: 6px; border: 1px solid #ddd;">~500 KB</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <button class="btn" onclick="startBulkProcessing()">Start Processing</button>
             </div>
@@ -540,6 +666,38 @@
             document.getElementById(tabName + '-tab').classList.add('active');
         }
         
+        // Handle truncate transcript toggle for channel export
+        document.addEventListener('DOMContentLoaded', function() {
+            const channelTruncate = document.getElementById('truncate-transcripts');
+            const channelCharLimit = document.getElementById('channel-char-limit-group');
+            const channelRefTable = document.getElementById('channel-ref-table');
+            
+            channelTruncate.addEventListener('change', function() {
+                if (this.value === 'true') {
+                    channelCharLimit.style.display = 'block';
+                    channelRefTable.style.display = 'block';
+                } else {
+                    channelCharLimit.style.display = 'none';
+                    channelRefTable.style.display = 'none';
+                }
+            });
+            
+            // Handle truncate transcript toggle for bulk videos
+            const bulkTruncate = document.getElementById('bulk-truncate-transcripts');
+            const bulkCharLimit = document.getElementById('bulk-char-limit-group');
+            const bulkRefTable = document.getElementById('bulk-ref-table');
+            
+            bulkTruncate.addEventListener('change', function() {
+                if (this.value === 'true') {
+                    bulkCharLimit.style.display = 'block';
+                    bulkRefTable.style.display = 'block';
+                } else {
+                    bulkCharLimit.style.display = 'none';
+                    bulkRefTable.style.display = 'none';
+                }
+            });
+        });
+        
         async function startChannelExport() {
             const channelUrl = document.getElementById('channel-url').value.trim();
             if (!channelUrl) {
@@ -553,12 +711,17 @@
             btn.textContent = 'Starting...';
             
             try {
+                const truncateTranscripts = document.getElementById('truncate-transcripts').value === 'true';
+                const transcriptCharLimit = truncateTranscripts ? parseInt(document.getElementById('channel-char-limit').value) : null;
+                
                 const response = await fetch('/youtube/channel/export', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         channel_id_or_url: channelUrl,
                         include_transcripts: document.getElementById('include-transcripts').value === 'true',
+                        truncate_transcripts: truncateTranscripts,
+                        transcript_char_limit: transcriptCharLimit,
                         max_videos: (() => {
                             const val = parseInt(document.getElementById('max-videos').value);
                             return (val && val > 0) ? val : null;  // 0 or empty = unlimited
@@ -602,6 +765,8 @@
             btn.textContent = 'Starting...';
             
             const includeTranscripts = document.getElementById('bulk-include-transcripts').value === 'true';
+            const truncateTranscripts = document.getElementById('bulk-truncate-transcripts').value === 'true';
+            const transcriptCharLimit = truncateTranscripts ? parseInt(document.getElementById('bulk-char-limit').value) : null;
             
             try {
                 const response = await fetch('/youtube/details/bulk', {
@@ -609,7 +774,9 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         urls_text: urls,
-                        include_transcripts: includeTranscripts
+                        include_transcripts: includeTranscripts,
+                        truncate_transcripts: truncateTranscripts,
+                        transcript_char_limit: transcriptCharLimit
                     })
                 });
                 

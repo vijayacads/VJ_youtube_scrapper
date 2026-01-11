@@ -62,7 +62,9 @@ async def health():
 async def get_youtube_details(
     inputs: List[str], 
     progress_callback: Optional[Callable[[int, int, str], None]] = None,
-    include_transcripts: bool = True
+    include_transcripts: bool = True,
+    truncate_transcripts: bool = False,
+    transcript_char_limit: Optional[int] = None
 ) -> YoutubeDetailsResponse:
     """
     Orchestrates fetching YouTube video details including metadata and transcripts.
@@ -135,7 +137,7 @@ async def get_youtube_details(
         # Fetch transcript for this video (only if requested)
         if include_transcripts:
             try:
-                transcript = fetch_transcript_text(video_id)
+                transcript = fetch_transcript_text(video_id, truncate_transcripts=truncate_transcripts, transcript_char_limit=transcript_char_limit)
                 # Check if it was blocked vs just unavailable
                 if transcript == "__BLOCKED__":
                     # Was blocked - already logged in fetch_transcript_text
@@ -289,6 +291,8 @@ async def youtube_details_bulk(
         inputs.extend(parse_bulk_input(content_str, file_content_type))
     # Process JSON body if provided (application/json)
     include_transcripts = True  # Default to True for backward compatibility
+    truncate_transcripts = False
+    transcript_char_limit = None
     if "application/json" in content_type:
         try:
             body = await http_request.json()
@@ -297,6 +301,11 @@ async def youtube_details_bulk(
             # Extract include_transcripts from request body
             if "include_transcripts" in body:
                 include_transcripts = bool(body["include_transcripts"])
+            # Extract truncation parameters
+            if "truncate_transcripts" in body:
+                truncate_transcripts = bool(body["truncate_transcripts"])
+            if "transcript_char_limit" in body and body["transcript_char_limit"] is not None:
+                transcript_char_limit = int(body["transcript_char_limit"])
         except Exception as e:
             raise HTTPException(
                 status_code=400,
@@ -324,12 +333,12 @@ async def youtube_details_bulk(
     }
     
     # Start processing in background
-    asyncio.create_task(process_bulk_details(job_id, inputs, cancellation_token, include_transcripts))
+    asyncio.create_task(process_bulk_details(job_id, inputs, cancellation_token, include_transcripts, truncate_transcripts, transcript_char_limit))
     
     return {"job_id": job_id, "message": "Job started. Check /jobs/{job_id} for progress."}
 
 
-async def process_bulk_details(job_id: str, inputs: List[str], cancellation_token: asyncio.Event, include_transcripts: bool = True):
+async def process_bulk_details(job_id: str, inputs: List[str], cancellation_token: asyncio.Event, include_transcripts: bool = True, truncate_transcripts: bool = False, transcript_char_limit: Optional[int] = None):
     """Background task to process bulk video details."""
     try:
         # Progress callback - ensure updates are immediately visible
@@ -365,7 +374,7 @@ async def process_bulk_details(job_id: str, inputs: List[str], cancellation_toke
                 # #endregion
         
         # Get YouTube details
-        response = await get_youtube_details(inputs, progress_callback=progress_callback, include_transcripts=include_transcripts)
+        response = await get_youtube_details(inputs, progress_callback=progress_callback, include_transcripts=include_transcripts, truncate_transcripts=truncate_transcripts, transcript_char_limit=transcript_char_limit)
         
         if cancellation_token.is_set():
             jobs[job_id]["status"] = "cancelled"
@@ -618,7 +627,10 @@ async def process_channel_export(job_id: str, request: ChannelExportRequest, can
         # Fetch details for all videos
         details_response = await get_youtube_details(
             [f"https://www.youtube.com/watch?v={vid}" for vid in video_ids],
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            include_transcripts=request.include_transcripts,
+            truncate_transcripts=request.truncate_transcripts,
+            transcript_char_limit=request.transcript_char_limit
         )
         
         if cancellation_token.is_set():
