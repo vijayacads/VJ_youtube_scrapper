@@ -11,7 +11,7 @@ from typing import List, Optional, Callable, Dict
 from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse, Response
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 try:
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill
@@ -30,8 +30,29 @@ from youtube_metadata import fetch_youtube_metadata
 from youtube_transcript import fetch_transcript_text
 from youtube_channel import fetch_channel_video_ids, resolve_channel_id, get_channel_title, get_channel_video_count, scrape_popular_videos
 
-# Load environment variables in development
-load_dotenv()
+# Helper functions for .env file location
+def get_user_data_dir() -> Path:
+    """Get user data directory for storing .env file (cross-platform)"""
+    if os.name == 'nt':  # Windows
+        appdata = os.getenv('APPDATA')
+        if appdata:
+            return Path(appdata) / "VJ Youtube Amaze"
+        else:
+            # Fallback to user home
+            return Path.home() / ".vj_youtube_amaze"
+    else:  # Linux/Mac
+        return Path.home() / ".config" / "vj_youtube_amaze"
+
+def get_env_path() -> Path:
+    """Get absolute path to .env file in user data directory"""
+    data_dir = get_user_data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir / ".env"
+
+# Load environment variables - try user data dir first, then current directory for backward compatibility
+env_path = get_env_path()
+load_dotenv(env_path)  # Load from user data directory
+load_dotenv()  # Also try current directory for backward compatibility
 
 app = FastAPI(title="YouTube Scraper API", version="1.0.0")
 
@@ -44,13 +65,99 @@ try:
 except:
     pass
 
+def is_api_key_configured() -> bool:
+    """Check if API key is configured in .env file"""
+    env_path = get_env_path()
+    if not env_path.exists():
+        return False
+    
+    try:
+        with open(env_path, "r") as f:
+            content = f.read()
+            if "YOUTUBE_API_KEY" in content:
+                # Check if it has a value (not just the key name)
+                for line in content.split('\n'):
+                    if line.startswith('YOUTUBE_API_KEY=') and len(line.split('=')) > 1:
+                        key_value = line.split('=', 1)[1].strip()
+                        if key_value and key_value != "":
+                            return True
+    except:
+        pass
+    
+    return False
+
+
 @app.get("/")
 async def root():
-    """Serve the UI."""
+    """Serve the UI or setup page based on configuration."""
+    # Check if API key is configured
+    if not is_api_key_configured():
+        # Show setup page if not configured
+        try:
+            return FileResponse("static/setup.html")
+        except:
+            return {"message": "Setup required. Please configure API key."}
+    
+    # Show main app if configured
     try:
         return FileResponse("static/index.html")
     except:
         return {"message": "UI not found. API is available at /docs"}
+
+
+@app.get("/setup")
+async def setup_page():
+    """API Key setup page - shown on first run"""
+    try:
+        return FileResponse("static/setup.html")
+    except:
+        return {"message": "Setup page not found"}
+
+
+@app.post("/setup/api-key")
+async def save_api_key(request: Request):
+    """Save API key from setup page"""
+    try:
+        body = await request.json()
+        api_key = body.get("api_key", "").strip()
+        
+        if not api_key:
+            raise HTTPException(status_code=400, detail="API key cannot be empty")
+        
+        if not api_key.startswith("AIza"):
+            raise HTTPException(status_code=400, detail="Invalid API key format. API key should start with 'AIza'")
+        
+        # Save to .env file in user data directory using dotenv.set_key()
+        env_path = get_env_path()
+        try:
+            # Ensure directory exists
+            env_path.parent.mkdir(parents=True, exist_ok=True)
+            # Use dotenv.set_key() which handles file creation and proper formatting
+            set_key(dotenv_path=env_path, key_to_set="YOUTUBE_API_KEY", value_to_set=api_key)
+            # Reload environment variables
+            load_dotenv(env_path, override=True)
+        except PermissionError:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Permission denied: Cannot write to {env_path}. Please check file permissions or run with administrator privileges."
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to save API key: {str(e)}"
+            )
+        
+        return {"status": "success", "message": "API key saved successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/check-setup")
+async def check_setup():
+    """Check if API key is configured"""
+    return {"configured": is_api_key_configured()}
 
 
 @app.get("/health")

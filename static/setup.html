@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VJ Youtube Amaze - API Key Setup</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #2c4869 0%, #69ab4a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 { 
+            color: #2c4869; 
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .important-note {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        .important-note strong {
+            color: #856404;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .step {
+            background: #f5f5f5;
+            padding: 18px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 5px solid #69ab4a;
+        }
+        .step-number {
+            font-weight: bold;
+            color: #2c4869;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .step-content {
+            color: #333;
+            line-height: 1.6;
+        }
+        .step-content strong {
+            color: #2c4869;
+        }
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        input:focus {
+            outline: none;
+            border-color: #2c4869;
+        }
+        button {
+            background: linear-gradient(135deg, #2c4869 0%, #69ab4a 100%);
+            color: white;
+            border: none;
+            padding: 16px 30px;
+            border-radius: 8px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(44, 72, 105, 0.4);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .error { 
+            color: #d32f2f; 
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 5px;
+        }
+        .success { 
+            color: #2e7d32; 
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 5px;
+        }
+        a { 
+            color: #2c4869; 
+            text-decoration: none;
+            font-weight: 600;
+        }
+        a:hover { 
+            text-decoration: underline; 
+        }
+        .highlight {
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        .video-link {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 15px;
+            background: #91d8f7;
+            color: #2c4869;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 YouTube API Key Setup</h1>
+        <p class="subtitle">
+            Welcome to <strong>VJ Youtube Amaze</strong>! Let's get you started in just 5 minutes.
+        </p>
+        
+        <div class="important-note">
+            <strong>⚠️ Important: Why You Need Your Own API Key</strong>
+            <div style="color: #856404; font-size: 14px; line-height: 1.6;">
+                Each person must create their <strong>own</strong> API key using their <strong>personal Google account</strong>. 
+                This is completely <strong>FREE</strong> and only takes a few minutes. 
+                Don't worry - we'll guide you through every step!
+            </div>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid #69ab4a;">
+            <strong style="color: #2e7d32;">✅ It's FREE!</strong>
+            <div style="color: #2e7d32; font-size: 14px; margin-top: 5px;">
+                Google gives you 10,000 free requests per day - that's enough for thousands of videos!
+            </div>
+        </div>
+        
+        <h2 style="color: #2c4869; margin: 25px 0 15px 0; font-size: 22px;">Follow These Simple Steps:</h2>
+        
+        <div class="step">
+            <div class="step-number">Step 1: Open Google Cloud Console</div>
+            <div class="step-content">
+                Click this link to open Google Cloud Console in a new window:
+                <br><a href="https://console.cloud.google.com/" target="_blank" class="video-link">👉 Open Google Cloud Console</a>
+                <br><br>
+                <strong>Sign in</strong> with your Google account (the same one you use for Gmail or YouTube).
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">Step 2: Create a New Project</div>
+            <div class="step-content">
+                At the top of the page, you'll see <strong>"Select a project"</strong> - click on it.
+                <br><br>
+                Then click the <strong>"New Project"</strong> button.
+                <br><br>
+                Enter any name you like (e.g., "My YouTube Scraper" or "VJ Youtube Amaze").
+                <br><br>
+                Click <strong>"Create"</strong> and wait a few seconds for it to finish.
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">Step 3: Enable YouTube Data API</div>
+            <div class="step-content">
+                Once your project is created, click on the <span class="highlight">☰ (hamburger menu)</span> at the top left.
+                <br><br>
+                Go to <strong>"APIs & Services"</strong> → <strong>"Library"</strong>
+                <br><br>
+                In the search box at the top, type: <span class="highlight">YouTube Data API v3</span>
+                <br><br>
+                Click on <strong>"YouTube Data API v3"</strong> from the results.
+                <br><br>
+                Click the big <strong>"ENABLE"</strong> button and wait for it to finish.
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">Step 4: Create Your API Key</div>
+            <div class="step-content">
+                Click on <strong>"APIs & Services"</strong> → <strong>"Credentials"</strong> (from the left menu).
+                <br><br>
+                Click the <strong>"+ CREATE CREDENTIALS"</strong> button at the top.
+                <br><br>
+                Select <strong>"API Key"</strong> from the dropdown menu.
+                <br><br>
+                A popup will appear showing your API key! It will look something like: 
+                <span class="highlight">AIzaSyC1234567890abcdefghijklmnopqrstuvw</span>
+                <br><br>
+                <strong>Copy this entire key</strong> - you'll paste it below.
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">Step 5: Paste Your API Key Here</div>
+            <div class="step-content">
+                Paste the API key you just copied into the box below, then click "Save API Key".
+                <br><br>
+                Don't worry - your API key stays on your computer and is completely private.
+            </div>
+        </div>
+        
+        <input type="text" id="api-key" placeholder="Paste your YouTube API Key here (it starts with AIza...)" />
+        
+        <button onclick="saveApiKey()" id="save-btn">💾 Save API Key & Continue</button>
+        
+        <div id="message"></div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0; color: #666; font-size: 13px; line-height: 1.6;">
+            <strong>Need Help?</strong><br>
+            • Make sure you're signed in to your Google account<br>
+            • The API key should start with "AIza"<br>
+            • Each person needs their own unique API key<br>
+            • If you get stuck, try the steps again - they only take 2 minutes!
+        </div>
+    </div>
+    
+    <script>
+        async function saveApiKey() {
+            const apiKey = document.getElementById('api-key').value.trim();
+            const messageDiv = document.getElementById('message');
+            const saveBtn = document.getElementById('save-btn');
+            
+            if (!apiKey) {
+                messageDiv.innerHTML = '<div class="error">❌ Please paste your API key first. If you haven\'t created one yet, follow the steps above.</div>';
+                return;
+            }
+            
+            // Basic validation - API key should start with AIza
+            if (!apiKey.startsWith('AIza')) {
+                messageDiv.innerHTML = '<div class="error">⚠️ The API key should start with "AIza". Please check that you copied the complete key.</div>';
+                return;
+            }
+            
+            saveBtn.disabled = true;
+            saveBtn.textContent = '💾 Saving...';
+            messageDiv.innerHTML = '<div>Saving your API key...</div>';
+            
+            try {
+                const response = await fetch('/setup/api-key', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({api_key: apiKey})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.innerHTML = '<div class="success">✅ API key saved successfully! Redirecting to the main application...</div>';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = '💾 Save API Key & Continue';
+                    messageDiv.innerHTML = `<div class="error">❌ Error: ${data.detail || 'Failed to save API key. Please try again.'}</div>`;
+                }
+            } catch (error) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save API Key & Continue';
+                messageDiv.innerHTML = `<div class="error">❌ Error: ${error.message}. Please check your internet connection and try again.</div>`;
+            }
+        }
+        
+        // Allow Enter key to submit
+        document.getElementById('api-key').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveApiKey();
+            }
+        });
+        
+        // Focus on input when page loads
+        window.addEventListener('load', function() {
+            document.getElementById('api-key').focus();
+        });
+    </script>
+</body>
+</html>

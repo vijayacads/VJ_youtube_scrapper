@@ -43,7 +43,7 @@ async def _fetch_batch(video_ids: List[str]) -> Dict[str, YoutubeVideoFull]:
     api_key = get_youtube_api_key()
     
     params = {
-        "part": "snippet,contentDetails",
+        "part": "snippet,contentDetails,statistics",
         "id": ids_str,
         "key": api_key
     }
@@ -61,6 +61,7 @@ async def _fetch_batch(video_ids: List[str]) -> Dict[str, YoutubeVideoFull]:
                     video_id = item["id"]
                     snippet = item.get("snippet", {})
                     content_details = item.get("contentDetails", {})
+                    statistics = item.get("statistics", {})
                     
                     # Extract thumbnails
                     thumbnails = {}
@@ -74,6 +75,14 @@ async def _fetch_batch(video_ids: List[str]) -> Dict[str, YoutubeVideoFull]:
                     # Parse duration (ISO 8601 format like PT1H2M10S)
                     duration = content_details.get("duration", "")
                     
+                    # Get view count from statistics
+                    view_count = None
+                    if "viewCount" in statistics:
+                        try:
+                            view_count = int(statistics["viewCount"])
+                        except (ValueError, TypeError):
+                            view_count = None
+                    
                     video = YoutubeVideoFull(
                         id=video_id,
                         url=f"https://www.youtube.com/watch?v={video_id}",
@@ -83,7 +92,8 @@ async def _fetch_batch(video_ids: List[str]) -> Dict[str, YoutubeVideoFull]:
                         published_at=snippet.get("publishedAt", ""),
                         duration=duration,
                         thumbnails=thumbnails,
-                        transcript=None  # Will be filled later
+                        transcript=None,  # Will be filled later
+                        view_count=view_count
                     )
                     results[video_id] = video
             

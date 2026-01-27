@@ -22,3 +22,17 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Build artifacts (but keep installer)
+build/
+dist/VJ_Youtube_Amaze.exe
+*.spec.bak
+
+# Keep installer in dist
+!dist/VJ_Youtube_Amaze_Setup.exe
+
+# Debug and test files
+debug/
+.cursor/
+test_*.py
+verify_*.py
+
